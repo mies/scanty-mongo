@@ -3,18 +3,14 @@ require File.dirname(__FILE__) + '/../vendor/maruku/maruku'
 $LOAD_PATH.unshift File.dirname(__FILE__) + '/../vendor/syntax'
 require 'syntax/convertors/html'
 
-class Post < Sequel::Model
-	unless table_exists?
-		set_schema do
-			primary_key :id
-			text :title
-			text :body
-			text :slug
-			text :tags
-			timestamp :created_at
-		end
-		create_table
-	end
+class Post
+    include MongoMapper::Document
+    
+    key :title, String
+    key :body, String
+    key :slug, String
+    key :tags, String
+    timestamps! 
 
 	def url
 		d = created_at

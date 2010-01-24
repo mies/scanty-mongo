@@ -1,11 +1,13 @@
 require 'rubygems'
 require 'sinatra'
 
-$LOAD_PATH.unshift File.dirname(__FILE__) + '/vendor/sequel'
-require 'sequel'
+$LOAD_PATH.unshift File.dirname(__FILE__) + '/vendor/mongomapper'
+require 'mongo_mapper'
 
 configure do
-	Sequel.connect(ENV['DATABASE_URL'] || 'sqlite://blog.db')
+	#Sequel.connect(ENV['DATABASE_URL'] || 'sqlite://blog.db')
+	MongoMapper.connection = Mongo::Connection.new('localhost')
+	MongoMapper.database = 'scanty_on_mongo'
 
 	require 'ostruct'
 	Blog = OpenStruct.new(
@@ -44,12 +46,13 @@ layout 'layout'
 ### Public
 
 get '/' do
-	posts = Post.reverse_order(:created_at).limit(10)
+	posts = Post.all(:order => 'created_at DESC', :limit => 10)
 	erb :index, :locals => { :posts => posts }, :layout => false
 end
 
 get '/past/:year/:month/:day/:slug/' do
-	post = Post.filter(:slug => params[:slug]).first
+	#post = Post.filter(:slug => params[:slug]).first
+	post = Post.first(:slug => params[:slug])
 	stop [ 404, "Page not found" ] unless post
 	@title = post.title
 	erb :post, :locals => { :post => post }
@@ -60,20 +63,23 @@ get '/past/:year/:month/:day/:slug' do
 end
 
 get '/past' do
-	posts = Post.reverse_order(:created_at)
+	#posts = Post.reverse_order(:created_at)
+	posts = Post.all(:order => 'created_at DESC')
 	@title = "Archive"
 	erb :archive, :locals => { :posts => posts }
 end
 
 get '/past/tags/:tag' do
 	tag = params[:tag]
-	posts = Post.filter(:tags.like("%#{tag}%")).reverse_order(:created_at).limit(30)
+	#posts = Post.filter(:tags.like("%#{tag}%")).reverse_order(:created_at).limit(30)
+	posts = Post.all(:tags => tag, :order => 'created_at DESC', :limit => 30)
 	@title = "Posts tagged #{tag}"
 	erb :tagged, :locals => { :posts => posts, :tag => tag }
 end
 
 get '/feed' do
-	@posts = Post.reverse_order(:created_at).limit(20)
+	#@posts = Post.reverse_order(:created_at).limit(20)
+	@posts = Post.all(:order => 'created_at DESC', :limit => 20)
 	content_type 'application/atom+xml', :charset => 'utf-8'
 	builder :feed
 end
@@ -107,14 +113,16 @@ end
 
 get '/past/:year/:month/:day/:slug/edit' do
 	auth
-	post = Post.filter(:slug => params[:slug]).first
+	#post = Post.filter(:slug => params[:slug]).first
+	post = Post.first(:slug => params[:slug])
 	stop [ 404, "Page not found" ] unless post
 	erb :edit, :locals => { :post => post, :url => post.url }
 end
 
 post '/past/:year/:month/:day/:slug/' do
 	auth
-	post = Post.filter(:slug => params[:slug]).first
+	#post = Post.filter(:slug => params[:slug]).first
+	post = Post.first(:slug => params[:slug])
 	stop [ 404, "Page not found" ] unless post
 	post.title = params[:title]
 	post.tags = params[:tags]
