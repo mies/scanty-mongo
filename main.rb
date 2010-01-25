@@ -108,7 +108,6 @@ end
 
 get '/past/:year/:month/:day/:slug/edit' do
 	auth
-	#post = Post.filter(:slug => params[:slug]).first
 	post = Post.first(:slug => params[:slug])
 	stop [ 404, "Page not found" ] unless post
 	erb :edit, :locals => { :post => post, :url => post.url }
